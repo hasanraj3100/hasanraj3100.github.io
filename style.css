@@ -789,6 +789,12 @@ body {
     margin: 15px 0;
   }
 
+  .hero {
+    padding-top: 120px; /* Increased padding for mobile */
+    height: auto; /* Allow height to grow naturally */
+    min-height: 100vh; /* Ensure full viewport height */
+  }
+
   .hero h1 {
     font-size: 2.5rem;
   }

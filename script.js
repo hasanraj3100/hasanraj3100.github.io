@@ -1,83 +1,124 @@
-// script.js
-document.addEventListener("DOMContentLoaded", function () {
-  // Mobile menu toggle
-  const hamburger = document.querySelector(".hamburger");
-  const navMenu = document.querySelector(".nav-menu");
+'use strict';
 
-  hamburger.addEventListener("click", function () {
-    hamburger.classList.toggle("active");
-    navMenu.classList.toggle("active");
-  });
+// ──────────────────────────────────────────────────────────────────
+// Utilities
+// ──────────────────────────────────────────────────────────────────
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-  // Close mobile menu when clicking on a link
-  document.querySelectorAll(".nav-menu a").forEach((link) => {
-    link.addEventListener("click", () => {
-      hamburger.classList.remove("active");
-      navMenu.classList.remove("active");
-    });
-  });
+// ──────────────────────────────────────────────────────────────────
+// Mobile Navigation
+// ──────────────────────────────────────────────────────────────────
+const hamburger  = $('#hamburger');
+const mobileMenu = $('#mobile-menu');
 
-  // Smooth scrolling for navigation links
-  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-    anchor.addEventListener("click", function (e) {
-      e.preventDefault();
-
-      const targetId = this.getAttribute("href");
-      if (targetId === "#") return;
-
-      const targetElement = document.querySelector(targetId);
-      if (targetElement) {
-        const navHeight = document.querySelector("#navbar").offsetHeight;
-        const targetPosition =
-          targetElement.getBoundingClientRect().top +
-          window.pageYOffset -
-          navHeight;
-
-        window.scrollTo({
-          top: targetPosition,
-          behavior: "smooth",
-        });
-      }
-    });
-  });
-
-  // Navbar background change on scroll
-  window.addEventListener("scroll", function () {
-    const navbar = document.getElementById("navbar");
-    if (window.scrollY > 100) {
-      navbar.style.background = "rgba(15, 23, 42, 0.98)";
-      navbar.style.boxShadow = "0 2px 10px rgba(0, 0, 0, 0.3)";
-      navbar.style.backdropFilter = "blur(10px)";
-    } else {
-      navbar.style.background = "rgba(15, 23, 42, 0.95)";
-      navbar.style.boxShadow =
-        "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)";
-    }
-  });
-
+hamburger.addEventListener('click', () => {
+  const isOpen = mobileMenu.classList.toggle('open');
+  hamburger.classList.toggle('active', isOpen);
+  hamburger.setAttribute('aria-expanded', String(isOpen));
 });
 
-// Add subtle animations to elements when they come into view
-const observerOptions = {
-  root: null,
-  rootMargin: "0px",
-  threshold: 0.1,
-};
-
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      entry.target.style.opacity = 1;
-      entry.target.style.transform = "translateY(0)";
-    }
+// Close on nav link or CTA click
+$$('.mobile-nav-links a, .mobile-cta').forEach(link => {
+  link.addEventListener('click', () => {
+    mobileMenu.classList.remove('open');
+    hamburger.classList.remove('active');
+    hamburger.setAttribute('aria-expanded', 'false');
   });
-}, observerOptions);
-
-// Observe all section elements for animation
-document.querySelectorAll(".section").forEach((section) => {
-  section.style.opacity = 0;
-  section.style.transform = "translateY(20px)";
-  section.style.transition = "opacity 0.5s ease, transform 0.5s ease";
-  observer.observe(section);
 });
 
+// ──────────────────────────────────────────────────────────────────
+// Smooth Scrolling
+// ──────────────────────────────────────────────────────────────────
+$$('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    const id = this.getAttribute('href');
+    if (id === '#') return;
+    e.preventDefault();
+    const target = document.querySelector(id);
+    if (!target) return;
+    const navH = $('#navbar').offsetHeight;
+    const top  = target.getBoundingClientRect().top + window.scrollY - navH;
+    window.scrollTo({ top, behavior: 'smooth' });
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────
+// Navbar — scroll-linked glass appearance
+// ──────────────────────────────────────────────────────────────────
+const navbar = $('#navbar');
+const navBg  = $('.nav-bg');
+
+function updateNavbar() {
+  const scrolled = window.scrollY > 50;
+  if (navBg) {
+    navBg.style.background = scrolled
+      ? 'rgba(5,5,6,0.85)'
+      : 'rgba(5,5,6,0.72)';
+  }
+}
+
+window.addEventListener('scroll', updateNavbar, { passive: true });
+updateNavbar();
+
+// ──────────────────────────────────────────────────────────────────
+// Active nav link scroll-spy
+// ──────────────────────────────────────────────────────────────────
+const sections  = $$('section[id]');
+const navLinks  = $$('.nav-menu a[href^="#"]');
+
+const spyObserver = new IntersectionObserver(
+  entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const id = entry.target.id;
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+      });
+    });
+  },
+  { threshold: 0.35 }
+);
+sections.forEach(s => spyObserver.observe(s));
+
+// ──────────────────────────────────────────────────────────────────
+// Hero — Parallax on scroll (opacity + scale + translateY)
+// ──────────────────────────────────────────────────────────────────
+const heroSection   = $('#home');
+const heroParallax  = $('#hero-parallax');
+
+function updateHeroParallax() {
+  if (!heroParallax || !heroSection) return;
+  const ratio = Math.min(window.scrollY / (heroSection.offsetHeight * 0.65), 1);
+  heroParallax.style.opacity   = 1 - ratio * 0.92;
+  heroParallax.style.transform = `translateY(${ratio * 55}px) scale(${1 - ratio * 0.04})`;
+}
+
+window.addEventListener('scroll', updateHeroParallax, { passive: true });
+
+// ──────────────────────────────────────────────────────────────────
+// Card Mouse-Tracking Spotlight
+// ──────────────────────────────────────────────────────────────────
+$$('.card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mouse-x', `${e.clientX - r.left}px`);
+    card.style.setProperty('--mouse-y', `${e.clientY - r.top}px`);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────
+// Scroll-Reveal via IntersectionObserver
+// ──────────────────────────────────────────────────────────────────
+const revealObserver = new IntersectionObserver(
+  entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    });
+  },
+  { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+);
+
+$$('[data-animate], [data-stagger]').forEach(el => revealObserver.observe(el));
